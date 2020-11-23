@@ -1,7 +1,6 @@
 #!/bin/bash
 # List out our templates with any metadata
 
-#LINUX_TEMPLATE_DIR="${1}"
 
 templates=()
 templates+=("Template^DistroVer^Description")
