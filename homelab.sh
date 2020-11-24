@@ -6,6 +6,7 @@ LINUX_TEMPLATE_DIR="/mnt/g/snapshot_hdds"
 TEMPLATE_DIR='G:\snapshot_hdds'
 VM_BASEDIR='G:\Hyper-V'
 PATH_TO_PUBKEY="/home/ryan/.ssh/id_rsa.pub"
+SCRIPT_PATH="$(dirname "$0")"
 
 #Other Arguments
 PREP_VM=0
@@ -22,39 +23,39 @@ TEMPLATE_DISTROVER=""
 OTHER_ARGS=()
 
 function list_templates () {
-	. homelab_scripts/list_templates.sh
+	. "${SCRIPT_PATH}"/homelab_scripts/list_templates.sh
 }
 
 function list_vms () {
-	. homelab_scripts/list_vms.sh
+	. "${SCRIPT_PATH}"/homelab_scripts/list_vms.sh
 }
 
 function prep_vm () {
-        . homelab_scripts/get_vm_state.sh
+        . "${SCRIPT_PATH}"/homelab_scripts/get_vm_state.sh
         if [[ ${VM_STATE} != 'Running' ]]; then
          echo "${VM_NAME} is not currently running. Please start the vm and wait at least ${SLEEP_TIME} seconds."
          exit 1
         fi
-        . homelab_scripts/get_vm_ip.sh
+        . "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
         if [[ -z ${VM_IP} ]]; then
           echo "Could not get an IP for ${VM_NAME} - Please try again later or log in through the Hyper-V Console to troubleshoot manually."
           exit 1
         fi
-        . homelab_scripts/prep_vm.sh
+        . "${SCRIPT_PATH}"/homelab_scripts/prep_vm.sh
 }
 
 function start_vm () {
-        . homelab_scripts/start_vm.sh
+        . "${SCRIPT_PATH}"/homelab_scripts/start_vm.sh
         echo "Waiting ${SLEEP_TIME} seconds for vm to boot."
         sleep ${SLEEP_TIME}
-        . homelab_scripts/get_vm_ip.sh
+        . "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
         if [[ ${PREP_VM} -eq 1 ]]; then
           prep_vm
         fi
 }
 
 function stop_vm () {
-        . homelab_scripts/stop_vm.sh
+        . "${SCRIPT_PATH}"/homelab_scripts/stop_vm.sh
 }
 
 function console_vm () {
@@ -63,7 +64,7 @@ function console_vm () {
 
 function provision_vm () {
 	RAM_BYTES=$(( VM_RAM * 1024*1024 ))
-	powershell.exe -File homelab_scripts/pwsh_create_vm.ps1 -VM_NAME "${VM_NAME}" -VM_RAM ${RAM_BYTES} -VM_CORES ${VM_CORES} -TEMPLATE_DIR ${TEMPLATE_DIR} -VM_BASEDIR ${VM_BASEDIR} -TEMPLATE_NAME "${TEMPLATE_NAME}"
+	powershell.exe -File "${SCRIPT_PATH}"/homelab_scripts/pwsh_create_vm.ps1 -VM_NAME "${VM_NAME}" -VM_RAM ${RAM_BYTES} -VM_CORES ${VM_CORES} -TEMPLATE_DIR ${TEMPLATE_DIR} -VM_BASEDIR ${VM_BASEDIR} -TEMPLATE_NAME "${TEMPLATE_NAME}"
 	if [[ ${START_VM} -eq 1 ]]; then
 	  start_vm
 	fi
@@ -75,12 +76,12 @@ function modify_vm () {
 }
 
 function login_vm () {
-	. homelab_scripts/get_vm_state.sh
+	. "${SCRIPT_PATH}"/homelab_scripts/get_vm_state.sh
 	if [[ ${VM_STATE} != 'Running' ]]; then
 	  echo "${VM_NAME} is not currently running. Please start the vm and wait at least ${SLEEP_TIME} seconds."
 	  exit 1
 	fi
-	. homelab_scripts/get_vm_ip.sh
+	. "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
 	if [[ -z ${VM_IP} ]]; then
 	  echo "Could not get an IP for ${VM_NAME} - Please try again later or log in through the Hyper-V Console to troubleshoot manually."
 	  exit 1
@@ -89,16 +90,16 @@ function login_vm () {
 }
 function destroy_vm () {
 	echo "Please be aware that this does not delete the files for the vm (metadata and hard disk). Please delete those manually."
-	. homelab_scripts/destroy_vm.sh
+	. "${SCRIPT_PATH}"/homelab_scripts/destroy_vm.sh
 }
 function modify_template() {
-	. homelab_scripts/modify_template.sh
+	. "${SCRIPT_PATH}"/homelab_scripts/modify_template.sh
 }
 function forward_wsl() {
 	#Placeholder until this can be made into a proper command
 	echo "Run the following command in an elevated powershell session."
 	echo "=========="
-	echo "$(cat homelab_scripts/talk_wsl.ps1)"
+	echo "$(cat "${SCRIPT_PATH}"/homelab_scripts/talk_wsl.ps1)"
 	echo "=========="
 }
 
@@ -255,21 +256,3 @@ for func in "${OTHER_ARGS[@]}"
       ;;
     esac
 done
-
-#function list_vms {
-#}
-
-#list_templates () {
-#	bash list_templates.sh
-#}
-
-
-#echo Template Dir: "${TEMPLATE_DIR}"
-#echo VM Basedir: "${VM_BASEDIR}"
-#echo Prep? ${PREP_VM}
-#echo Function: ${FUNCTION}
-#echo RAM: ${VM_RAM}
-#echo Cores: ${VM_CORES}
-#echo Name: "${VM_NAME}"
-#echo Template Name: "${TEMPLATE_NAME}"
-#echo Other: "${OTHER_ARGS[@]}"
