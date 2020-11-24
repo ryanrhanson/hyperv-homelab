@@ -10,12 +10,15 @@ PATH_TO_PUBKEY="/home/ryan/.ssh/id_rsa.pub"
 #Other Arguments
 PREP_VM=0
 START_VM=0
-FUNCTION="list"
+SET_DESCRIPTION=0
+SET_DISTROVER=0
 VM_RAM=3072
 VM_CORES=1
 VM_NAME="Virtual Machine"
 TEMPLATE_NAME="Template.vhdx"
 SLEEP_TIME=45
+TEMPLATE_DESCRIPTION=""
+TEMPLATE_DISTROVER=""
 OTHER_ARGS=()
 
 function list_templates () {
@@ -86,6 +89,9 @@ function destroy_vm () {
 	echo "Please be aware that this does not delete the files for the vm (metadata and hard disk). Please delete those manually."
 	. homelab_scripts/destroy_vm.sh
 }
+function modify_template() {
+	. homelab_scripts/modify_template.sh
+}
 
 while [[ $# -gt 0 ]]
   do
@@ -124,6 +130,18 @@ while [[ $# -gt 0 ]]
       START_VM=1
       shift
       ;;
+      --distrover)
+      SET_DISTROVER=1
+      TEMPLATE_DISTROVER="${2}"
+      shift
+      shift
+      ;;
+      --description)
+      SET_DESCRIPTION=1
+      TEMPLATE_DESCRIPTION="${2}"
+      shift
+      shift
+      ;;
       *)
       OTHER_ARGS+=("${1}")
       shift
@@ -160,6 +178,10 @@ for func in "${OTHER_ARGS[@]}"
       ;;
       templates)
       list_templates
+      break
+      ;;
+      mod_template)
+      modify_template
       break
       ;;
       console)
