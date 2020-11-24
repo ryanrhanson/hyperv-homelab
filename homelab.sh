@@ -92,6 +92,13 @@ function destroy_vm () {
 function modify_template() {
 	. homelab_scripts/modify_template.sh
 }
+function forward_wsl() {
+	#Placeholder until this can be made into a proper command
+	echo "Run the following command in an elevated powershell session."
+	echo "=========="
+	echo "$(cat homelab_scripts/talk_wsl.ps1)"
+	echo "=========="
+}
 
 while [[ $# -gt 0 ]]
   do
@@ -194,6 +201,10 @@ for func in "${OTHER_ARGS[@]}"
       ;;
       stop)
       stop_vm
+      break
+      ;;
+      wsl_forward)
+      forward_wsl
       break
       ;;
       *)
