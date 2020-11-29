@@ -1,6 +1,6 @@
-# Homelab Abomination
+# Hyper-V Homelab
 
-An abomination of powershell and bash scripts to provision and prepare Hyper-V vms through WSL.  
+An amalgamation of powershell and bash scripts to provision and prepare Hyper-V vms through WSL.  
 More usage documentation to come with output examples of each command in the wiki.
 
 Usage:
