@@ -17,6 +17,7 @@ START_VM=0
 SET_DESCRIPTION=0
 SET_DISTROVER=0
 CREATE_TASK=0
+DESTROY_VM=0
 VM_RAM=3072
 VM_CORES=1
 VM_NAME="Virtual Machine"
@@ -65,6 +66,9 @@ function start_vm () {
 
 function stop_vm () {
         . "${SCRIPT_PATH}"/stop_vm.sh
+	if [[ ${DESTROY_VM} -eq 1 ]]; then
+	  destroy_vm
+	fi
 }
 
 function console_vm () {
@@ -110,6 +114,7 @@ function forward_wsl() {
 	 . "${SCRIPT_PATH}"/forward_wsl.sh
         else
  	  echo "Run the following command in an elevated powershell session."
+	  echo "Re-run this command with '--create-task' to apply automatically on login."
 	  echo "=========="
 	  echo "$(cat "${SCRIPT_PATH}"/talk_wsl.ps1)"
 	  echo "=========="
@@ -143,6 +148,8 @@ Commands: provision, start, stop, prep, destroy, list, templates, mod_template, 
     -s|--start           Run VM start after provision - Usable with provision
     -p|--prep            Run VM prep after start - Usable with provision, start
     -u|--user            Use specified username - Usable with login
+    -d|--destroy         Destroy the VM - Usable with stop
+    --create_task        Create scheduled task to automatically setup wsl forwarding on login - Usable with wsl_forward
     --distrover          Set the 'distrover' attribute on the given template - Usable with mod_template
     --description        Set the 'description' attribute on the given template - Usable with mod_template
 
@@ -198,6 +205,10 @@ while [[ $# -gt 0 ]]
       -u|--user)
       VM_USER="${2}"
       shift
+      shift
+      ;;
+      -d|--destroy)
+      DESTROY_VM=1
       shift
       ;;
       --distrover)
