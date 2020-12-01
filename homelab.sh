@@ -81,7 +81,7 @@ function provision_vm () {
 
 function modify_vm () {
 	echo "VM Modification not yet implemented."
-#	. homelab_scripts/modify_vm.sh
+#	. "${SCRIPT_PATH}"/modify_vm.sh
 }
 
 function login_vm () {
@@ -90,7 +90,7 @@ function login_vm () {
 	  echo "${VM_NAME} is not currently running. Please start the vm and wait at least ${SLEEP_TIME} seconds."
 	  exit 1
 	fi
-	. "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
+	. "${SCRIPT_PATH}"/get_vm_ip.sh
 	if [[ -z ${VM_IP} ]]; then
 	  echo "Could not get an IP for ${VM_NAME} - Please try again later or log in through the Hyper-V Console to troubleshoot manually."
 	  exit 1
