@@ -29,6 +29,8 @@ Commands: provision, start, stop, prep, destroy, list, templates, mod_template, 
     -m|--memory          VM Ram allocation in MB (ie 3072 for 3GB) - Usable with provision
     -s|--start           Run VM start after provision - Usable with provision
     -p|--prep            Run VM prep after start - Usable with provision, start
+    -u|--user            User to log into vm with, default 'root' - Usable with login
+    --create_task        Create scheduled task to auto apply wsl_forward powershell command at login. - Usable with wsl_forward
     --distrover          Set the 'distrover' attribute on the given template - Usable with mod_template
     --description        Set the 'description' attribute on the given template - Usable with mod_template
 
