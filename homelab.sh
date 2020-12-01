@@ -2,17 +2,21 @@
 
 #DEFAULTS
 #PATHS
-LINUX_TEMPLATE_DIR="/mnt/g/snapshot_hdds"
 TEMPLATE_DIR='G:\snapshot_hdds'
 VM_BASEDIR='G:\Hyper-V'
+LINUX_TEMPLATE_DIR=$(wslpath -u "${TEMPLATE_DIR}")
+LINUX_VM_BASEDIR=$(wslpath -u "${VM_BASEDIR}")
 PATH_TO_PUBKEY="/home/ryan/.ssh/id_rsa.pub"
-SCRIPT_PATH="$(dirname "$0")"
+SCRIPT_PATH="$(dirname -- "$(readlink -e "${0}")")/homelab_scripts"
+PS_SCRIPT_PATH=$(wslpath -w "${SCRIPT_PATH}")
+
 
 #Other Arguments
 PREP_VM=0
 START_VM=0
 SET_DESCRIPTION=0
 SET_DISTROVER=0
+CREATE_TASK=0
 VM_RAM=3072
 VM_CORES=1
 VM_NAME="Virtual Machine"
@@ -20,51 +24,56 @@ TEMPLATE_NAME="Template.vhdx"
 SLEEP_TIME=45
 TEMPLATE_DESCRIPTION=""
 TEMPLATE_DISTROVER=""
+VM_USER="root"
 OTHER_ARGS=()
 
 function list_templates () {
-	. "${SCRIPT_PATH}"/homelab_scripts/list_templates.sh
+	. "${SCRIPT_PATH}"/list_templates.sh
 }
 
 function list_vms () {
-	. "${SCRIPT_PATH}"/homelab_scripts/list_vms.sh
+	. "${SCRIPT_PATH}"/list_vms.sh
+}
+
+function info_vm () {
+	. "${SCRIPT_PATH}"/vm_info.sh
 }
 
 function prep_vm () {
-        . "${SCRIPT_PATH}"/homelab_scripts/get_vm_state.sh
+        . "${SCRIPT_PATH}"/get_vm_state.sh
         if [[ ${VM_STATE} != 'Running' ]]; then
          echo "${VM_NAME} is not currently running. Please start the vm and wait at least ${SLEEP_TIME} seconds."
          exit 1
         fi
-        . "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
+        . "${SCRIPT_PATH}"/get_vm_ip.sh
         if [[ -z ${VM_IP} ]]; then
           echo "Could not get an IP for ${VM_NAME} - Please try again later or log in through the Hyper-V Console to troubleshoot manually."
           exit 1
         fi
-        . "${SCRIPT_PATH}"/homelab_scripts/prep_vm.sh
+        . "${SCRIPT_PATH}"/prep_vm.sh
 }
 
 function start_vm () {
-        . "${SCRIPT_PATH}"/homelab_scripts/start_vm.sh
+        . "${SCRIPT_PATH}"/start_vm.sh
         echo "Waiting ${SLEEP_TIME} seconds for vm to boot."
         sleep ${SLEEP_TIME}
-        . "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
+        . "${SCRIPT_PATH}"/get_vm_ip.sh
         if [[ ${PREP_VM} -eq 1 ]]; then
           prep_vm
         fi
 }
 
 function stop_vm () {
-        . "${SCRIPT_PATH}"/homelab_scripts/stop_vm.sh
+        . "${SCRIPT_PATH}"/stop_vm.sh
 }
 
 function console_vm () {
-        vmconnect.exe localhost "${VM_NAME}"
+        vmconnect.exe localhost "${VM_NAME}" &
 }
 
 function provision_vm () {
 	RAM_BYTES=$(( VM_RAM * 1024*1024 ))
-	powershell.exe -File "${SCRIPT_PATH}"/homelab_scripts/pwsh_create_vm.ps1 -VM_NAME "${VM_NAME}" -VM_RAM ${RAM_BYTES} -VM_CORES ${VM_CORES} -TEMPLATE_DIR ${TEMPLATE_DIR} -VM_BASEDIR ${VM_BASEDIR} -TEMPLATE_NAME "${TEMPLATE_NAME}"
+	. "${SCRIPT_PATH}"/provision_vm.sh
 	if [[ ${START_VM} -eq 1 ]]; then
 	  start_vm
 	fi
@@ -72,35 +81,39 @@ function provision_vm () {
 
 function modify_vm () {
 	echo "VM Modification not yet implemented."
-#	. homelab_scripts/modify_vm.sh
+#	. "${SCRIPT_PATH}"/modify_vm.sh
 }
 
 function login_vm () {
-	. "${SCRIPT_PATH}"/homelab_scripts/get_vm_state.sh
+	. "${SCRIPT_PATH}"/get_vm_state.sh
 	if [[ ${VM_STATE} != 'Running' ]]; then
 	  echo "${VM_NAME} is not currently running. Please start the vm and wait at least ${SLEEP_TIME} seconds."
 	  exit 1
 	fi
-	. "${SCRIPT_PATH}"/homelab_scripts/get_vm_ip.sh
+	. "${SCRIPT_PATH}"/get_vm_ip.sh
 	if [[ -z ${VM_IP} ]]; then
 	  echo "Could not get an IP for ${VM_NAME} - Please try again later or log in through the Hyper-V Console to troubleshoot manually."
 	  exit 1
 	fi
-	echo "You can log in to ${VM_NAME} by running ssh root@${VM_IP}."
+	ssh "${VM_USER}"@${VM_IP}
 }
 function destroy_vm () {
 	echo "Please be aware that this does not delete the files for the vm (metadata and hard disk). Please delete those manually."
-	. "${SCRIPT_PATH}"/homelab_scripts/destroy_vm.sh
+	. "${SCRIPT_PATH}"/destroy_vm.sh
 }
 function modify_template() {
-	. "${SCRIPT_PATH}"/homelab_scripts/modify_template.sh
+	. "${SCRIPT_PATH}"/modify_template.sh
 }
 function forward_wsl() {
 	#Placeholder until this can be made into a proper command
-	echo "Run the following command in an elevated powershell session."
-	echo "=========="
-	echo "$(cat "${SCRIPT_PATH}"/homelab_scripts/talk_wsl.ps1)"
-	echo "=========="
+	if [ ${CREATE_TASK} -eq 1 ]; then
+	 . "${SCRIPT_PATH}"/forward_wsl.sh
+        else
+ 	  echo "Run the following command in an elevated powershell session."
+	  echo "=========="
+	  echo "$(cat "${SCRIPT_PATH}"/talk_wsl.ps1)"
+	  echo "=========="
+	fi
 }
 
 function show_help() {
@@ -129,6 +142,7 @@ Commands: provision, start, stop, prep, destroy, list, templates, mod_template, 
     -m|--memory          VM Ram allocation in MB (ie 3072 for 3GB) - Usable with provision
     -s|--start           Run VM start after provision - Usable with provision
     -p|--prep            Run VM prep after start - Usable with provision, start
+    -u|--user            Use specified username - Usable with login
     --distrover          Set the 'distrover' attribute on the given template - Usable with mod_template
     --description        Set the 'description' attribute on the given template - Usable with mod_template
 
@@ -181,10 +195,19 @@ while [[ $# -gt 0 ]]
       START_VM=1
       shift
       ;;
+      -u|--user)
+      VM_USER="${2}"
+      shift
+      shift
+      ;;
       --distrover)
       SET_DISTROVER=1
       TEMPLATE_DISTROVER="${2}"
       shift
+      shift
+      ;;
+      --create_task)
+      CREATE_TASK=1
       shift
       ;;
       --description)
